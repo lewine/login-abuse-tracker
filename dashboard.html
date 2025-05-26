@@ -39,6 +39,10 @@
 <body>
   <h1>Login Abuse Tracker Dashboard</h1>
   <div class="section">
+    <button onclick="runSimulation()">▶️ Run Simulation</button>
+  </div>
+
+  <div class="section">
     <h2>Live Stats</h2>
     <p>Total Attempts: <span id="totalAttempts">0</span></p>
     <p>Unique IPs: <span id="uniqueIps">0</span></p>
@@ -151,6 +155,19 @@
     }
 
     setInterval(updateDashboard, 2000);
+
+    function runSimulation() {
+      fetch("/simulate-burst", { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+          alert(data.message);
+        })
+        .catch(err => {
+          alert("Error triggering simulation.");
+          console.error(err);
+        });
+    }
+
   </script>
 </body>
 </html>
