@@ -1,0 +1,156 @@
+<!-- dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Abuse Tracker Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #111;
+      color: #f1f1f1;
+    }
+    h1 {
+      margin-bottom: 0.5rem;
+    }
+    .section {
+      margin-top: 2rem;
+    }
+    canvas {
+      background: #222;
+      border-radius: 8px;
+    }
+    ul, .log-list {
+      background: #222;
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    li, .log-entry {
+      line-height: 1.6;
+    }
+    .success { color: #00ffcc; }
+    .failure { color: #ff6666; }
+    .rate-limited { color: #bbbbbb; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>Login Abuse Tracker Dashboard</h1>
+  <div class="section">
+    <h2>Live Stats</h2>
+    <p>Total Attempts: <span id="totalAttempts">0</span></p>
+    <p>Unique IPs: <span id="uniqueIps">0</span></p>
+    <p>Alerts Triggered: <span id="alerts">0</span></p>
+  </div>
+
+  <div class="section">
+    <h2>Blocked IPs</h2>
+    <ul id="blocklist"></ul>
+  </div>
+
+  <div class="section">
+    <h2>Login Activity Chart</h2>
+    <canvas id="activityChart" width="400" height="100"></canvas>
+  </div>
+
+  <div class="section">
+    <h2>Recent Login Attempts</h2>
+    <div class="log-list" id="recentLogs"></div>
+  </div>
+
+  <script>
+    async function fetchStats() {
+      const res = await fetch("/stats");
+      const data = await res.json();
+      document.getElementById("totalAttempts").textContent = data.total_attempts;
+      document.getElementById("uniqueIps").textContent = data.unique_ips;
+      document.getElementById("alerts").textContent = data.alerts_triggered;
+      return data;
+    }
+
+    async function fetchBlocklist() {
+      const res = await fetch("/blocklist");
+      const data = await res.json();
+      const list = document.getElementById("blocklist");
+      list.innerHTML = "";
+      data.forEach(ip => {
+        const li = document.createElement("li");
+        li.textContent = ip;
+        list.appendChild(li);
+      });
+    }
+
+    async function fetchRecentLogs() {
+      const res = await fetch("/recent-logs");
+      const data = await res.json();
+      const logDiv = document.getElementById("recentLogs");
+      logDiv.innerHTML = "";
+      data.forEach(entry => {
+        const div = document.createElement("div");
+        let cssClass = entry.success ? "success" : "failure";
+        if (entry.rate_limited) cssClass = "rate-limited";
+        div.className = `log-entry ${cssClass}`;
+        div.textContent = `[${entry.time}] ${entry.ip} - ${entry.success ? "SUCCESS" : "FAILURE"}${entry.rate_limited ? " (rate-limited)" : ""}`;
+        logDiv.appendChild(div);
+      });
+    }
+
+    const timeLabels = [];
+    const alertData = [];
+    const attemptData = [];
+
+    const chartCtx = document.getElementById("activityChart").getContext("2d");
+    const activityChart = new Chart(chartCtx, {
+      type: "line",
+      data: {
+        labels: timeLabels,
+        datasets: [
+          {
+            label: "Alerts Triggered",
+            data: alertData,
+            borderColor: "#00ffcc",
+            borderWidth: 2,
+            tension: 0.3
+          },
+          {
+            label: "Recent Attempts",
+            data: attemptData,
+            borderColor: "#ffcc00",
+            borderWidth: 2,
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        scales: {
+          y: { beginAtZero: true },
+          x: { ticks: { color: "#ccc" } }
+        },
+        plugins: { legend: { labels: { color: "#ccc" } } }
+      }
+    });
+
+    async function updateDashboard() {
+      const stats = await fetchStats();
+      fetchBlocklist();
+      fetchRecentLogs();
+
+      const now = new Date().toLocaleTimeString();
+      timeLabels.push(now);
+      alertData.push(stats.alerts_triggered);
+      attemptData.push(stats.recent_attempts);
+
+      if (alertData.length > 10) {
+        alertData.shift();
+        attemptData.shift();
+        timeLabels.shift();
+      }
+      activityChart.update();
+    }
+
+    setInterval(updateDashboard, 2000);
+  </script>
+</body>
+</html>
