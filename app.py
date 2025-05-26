@@ -1,5 +1,8 @@
 from flask import Flask, request, jsonify, send_file
 from tracker import log_attempt, get_stats, get_blocklist, get_recent_logs
+import threading
+import random
+import time
 
 app = Flask(__name__)
 
@@ -33,6 +36,21 @@ def blocklist():
 @app.route("/recent-logs", methods=["GET"])
 def recent_logs():
     return jsonify(get_recent_logs())
+
+@app.route("/simulate-burst", methods=["POST"])
+def simulate_burst():
+    thread = threading.Thread(target=run_simulation)
+    thread.start()
+    return jsonify({"status": "started", "message": "Running 200 simulated logins."})
+
+def run_simulation():
+    test_ips = [f"192.168.0.{i}" for i in range(1, 6)]
+    for _ in range(200):
+        ip = random.choice(test_ips)
+        success = random.random() > (0.1 if ip == "192.168.0.1" else 0.5)
+        log_attempt(ip, success)
+        time.sleep(random.uniform(0.1, 1.5))
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=10000)
