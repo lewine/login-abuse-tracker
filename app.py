@@ -41,11 +41,11 @@ def recent_logs():
 def simulate_burst():
     thread = threading.Thread(target=run_simulation)
     thread.start()
-    return jsonify({"status": "started", "message": "Running 200 simulated logins."})
+    return jsonify({"status": "started", "message": "Running 100 simulated logins."})
 
 def run_simulation():
     test_ips = [f"192.168.0.{i}" for i in range(1, 6)]
-    for _ in range(200):
+    for _ in range(100):
         ip = random.choice(test_ips)
         success = random.random() > (0.1 if ip == "192.168.0.1" else 0.5)
         log_attempt(ip, success)

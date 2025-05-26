@@ -2,7 +2,7 @@ import requests
 import random
 import time
 
-URL = "http://127.0.0.1:5000/attempt"
+URL = "https://login-abuse-tracker.onrender.com/attempt"
 test_ips = [f"192.168.0.{i}" for i in range(1, 6)]
 
 # Clear logs and blocklist before simulating
