@@ -6,9 +6,6 @@ import time
 
 app = Flask(__name__)
 
-open("logs.txt", "w").close()
-open("blocklist.txt", "w").close()
-
 @app.route("/")
 def dashboard():
     return send_file("dashboard.html")
@@ -50,6 +47,9 @@ def run_simulation():
         success = random.random() > (0.1 if ip == "192.168.0.1" else 0.5)
         log_attempt(ip, success)
         time.sleep(random.uniform(0.1, 2.5))
+
+    open("logs.txt", "w").close()
+    open("blocklist.txt", "w").close()
 
 
 if __name__ == "__main__":
