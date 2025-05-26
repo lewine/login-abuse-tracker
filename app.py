@@ -3,6 +3,9 @@ from tracker import log_attempt, get_stats, get_blocklist, get_recent_logs
 
 app = Flask(__name__)
 
+open("logs.txt", "w").close()
+open("blocklist.txt", "w").close()
+
 @app.route("/")
 def dashboard():
     return send_file("dashboard.html")
