@@ -49,7 +49,7 @@ def run_simulation():
         ip = random.choice(test_ips)
         success = random.random() > (0.1 if ip == "192.168.0.1" else 0.5)
         log_attempt(ip, success)
-        time.sleep(random.uniform(0.1, 1.5))
+        time.sleep(random.uniform(0.1, 2.5))
 
 
 if __name__ == "__main__":
