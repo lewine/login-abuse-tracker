@@ -15,22 +15,22 @@ Once loaded, hit "Run Simulation" button to start simulating random login activi
 
 ## Features
 
-- **Brute-force detection — blocks IPs after 3 failed login attempts
-- **Blocklist enforcement — ignores requests from blocked IPs
-- **Real-time dashboard — shows stats, charted login attempts, and blocklist
-- **Flask API backend — /attempt, /stats, /blocklist, /recent-logs
-- **Frontend UI — HTML + Chart.js dashboard
-- **Simulator mode — generates random traffic with skewed failure rates
-- **State reset after each simulation (stats, logs, and blocklist)
+- **Brute-force detection** — blocks IPs after 3 failed login attempts
+- **Blocklist enforcement** — ignores requests from blocked IPs
+- **Real-time dashboard** — shows stats, charted login attempts, and blocklist
+- **Flask API backend** — /attempt, /stats, /blocklist, /recent-logs
+- **Frontend UI — HTML** + Chart.js dashboard
+- **Simulator mode** — generates random traffic with skewed failure rates
+- **State reset after each simulation** (stats, logs, and blocklist)
 
 ---
 
 ## Tech Stack
 
-- **Backend: Python, Flask
-- **Frontend: HTML + Chart.js
-- **DevOps: Render (Free Tier Hosting)
-- **Other: threading, requests, random, deque, file I/O
+- **Backend:** Python, Flask
+- **Frontend:** HTML + Chart.js
+- **DevOps:** Render (Free Tier Hosting)
+- **Other:** threading, requests, random, deque, file I/O
 
 ---
 
