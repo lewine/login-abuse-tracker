@@ -74,6 +74,8 @@
       return data;
     }
 
+    setInterval(fetchStats, 2000);
+
     async function fetchBlocklist() {
       const res = await fetch("/blocklist");
       const data = await res.json();

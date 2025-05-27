@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_file
-from tracker import log_attempt, get_stats, get_blocklist, get_recent_logs
+from tracker import log_attempt, get_stats, get_blocklist, get_recent_logs, reset_tracker_state
 import threading
 import random
 import time
@@ -46,10 +46,11 @@ def run_simulation():
         ip = random.choice(test_ips)
         success = random.random() > (0.1 if ip == "192.168.0.1" else 0.5)
         log_attempt(ip, success)
-        time.sleep(random.uniform(0.1, 2.5))
+        time.sleep(random.uniform(0.1, 2))
 
     open("logs.txt", "w").close()
     open("blocklist.txt", "w").close()
+    reset_tracker_state()
 
 
 if __name__ == "__main__":

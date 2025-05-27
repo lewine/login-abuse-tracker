@@ -97,3 +97,13 @@ def get_blocklist():
 
 def get_recent_logs():
     return list(recent_logs)
+
+def reset_tracker_state():
+    global fail_streak, unique_ips, total_attempts, alerts_triggered, recent_attempt_timestamps
+    fail_streak.clear()
+    unique_ips.clear()
+    total_attempts = 0
+    alerts_triggered = 0
+    recent_attempt_timestamps.clear()
+    print("[TRACKER RESET] All internal state cleared.")
+
