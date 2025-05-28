@@ -1,58 +1,56 @@
-from flask import Flask, request, jsonify, send_file
-from tracker import log_attempt, get_stats, get_blocklist, get_recent_logs, reset_tracker_state
+import os
 import threading
-import random
-import time
+from flask import Flask, request, jsonify, send_from_directory
+from tracker import AttackTracker
+from simulate_api import run_simulation
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
+tracker = AttackTracker()
 
-@app.route("/")
-def dashboard():
-    return send_file("dashboard.html")
-
-@app.route("/attempt", methods=["POST"])
+@app.route('/attempt', methods=['POST'])
 def attempt():
-    data = request.json
-    ip = data.get("ip")
-    success = data.get("success")
+    data = request.get_json()
+    record = tracker.record_attempt(
+        ip=data.get('ip'),
+        user_id=data.get('user'),
+        geo=data.get('geo', ''),
+        sim_type=data.get('sim_type', 'normal'),
+        result='SUCCESS' if data.get('success') else 'FAILURE'
+    )
+    return jsonify(record), 200
 
-    if ip is None or success is None:
-        return jsonify({"error": "Missing IP or success field"}), 400
-
-    result = log_attempt(ip, success)
-    return jsonify(result)
-
-@app.route("/stats", methods=["GET"])
+@app.route('/stats', methods=['GET'])
 def stats():
-    return jsonify(get_stats())
+    stats = tracker.get_stats()
+    # include the most recent records so dashboard can slice off the top 20
+    stats['recent'] = tracker.get_recent()
+    return jsonify(stats), 200
 
-@app.route("/blocklist", methods=["GET"])
-def blocklist():
-    return jsonify(get_blocklist())
 
-@app.route("/recent-logs", methods=["GET"])
-def recent_logs():
-    return jsonify(get_recent_logs())
+@app.route('/recent', methods=['GET'])
+def recent():
+    return jsonify(tracker.get_recent()), 200
 
-@app.route("/simulate-burst", methods=["POST"])
-def simulate_burst():
-    thread = threading.Thread(target=run_simulation)
+@app.route('/simulate', methods=['POST'])
+def simulate():
+    params = request.get_json() or {}
+    sim_type = params.get('sim_type', 'normal')
+    rate = params.get('rate', 0.1)
+    duration = params.get('duration', 60)
+    failure_rate = params.get('failure_rate', 0.2)
+    # run simulation in background thread
+    thread = threading.Thread(
+        target=run_simulation,
+        args=(sim_type, rate, duration, failure_rate),
+        daemon=True
+    )
     thread.start()
-    return jsonify({"status": "started", "message": "Running 100 simulated logins."})
+    return jsonify({'status': 'simulation started'}), 202
 
-def run_simulation():
-    test_ips = [f"192.168.0.{i}" for i in range(1, 6)]
-    for _ in range(100):
-        ip = random.choice(test_ips)
-        success = random.random() > (0.1 if ip == "192.168.0.1" else 0.5)
-        log_attempt(ip, success)
-        time.sleep(random.uniform(0.1, 2))
+@app.route('/', methods=['GET'])
+def dashboard():
+    return send_from_directory('templates', 'dashboard.html')
 
-    open("logs.txt", "w").close()
-    open("blocklist.txt", "w").close()
-    reset_tracker_state()
-
-
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=10000)
-
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, threaded=True, debug=True)

@@ -1,109 +1,102 @@
+import os
+import json
 import time
-import sys
-from collections import defaultdict, deque
+from collections import deque
 
-FAIL_THRESHOLD = 3
-LOG_FILE = "logs.txt"
-BLOCKLIST_FILE = "blocklist.txt"
+# constants
+WINDOW_SIZE = 2   # seconds per bucket
+MAX_BUCKETS = 30  # keep ~1 minute of history
 
-fail_streak = defaultdict(int)
-total_attempts = 0
-alerts_triggered = 0
-unique_ips = set()
-recent_attempt_timestamps = []
-recent_logs = deque(maxlen=10)  # holds last 10 login attempts
-last_seen = defaultdict(float)
+# file paths
+BLOCKLIST_PATH = os.path.join(os.getcwd(), 'blocklist.txt')
+LOGS_PATH = os.path.join(os.getcwd(), 'logs.txt')
 
-def log_attempt(ip, success):
-    global total_attempts, alerts_triggered
-    now = time.time()
-    recent_attempt_timestamps.append(now)
+class AttackTracker:
+    def __init__(self):
+        # start fresh: truncate logs and blocklist on startup
+        open(LOGS_PATH, 'w').close()
+        open(BLOCKLIST_PATH, 'w').close()
+        self.blocked_ips = set()
 
-    # Soft rate limiting (tag, not block)
-    rate_limited = False
-    if now - last_seen[ip] < 2:
-        rate_limited = True
-    last_seen[ip] = now
+        # live-feed queue (most recent records)
+        self.records = deque(maxlen=1000)
+        # time-series buckets for graph data
+        self.buckets = deque(maxlen=MAX_BUCKETS)
+        self._start_new_bucket()
 
-    # Log to in-memory list for frontend
-    recent_logs.append({
-        "ip": ip,
-        "success": success,
-        "time": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now)),
-        "rate_limited": rate_limited
-    })
+    def _start_new_bucket(self):
+        # align bucket start to WINDOW_SIZE boundary
+        start_ts = int(time.time() // WINDOW_SIZE) * WINDOW_SIZE
+        bucket = {
+            'start': start_ts,
+            'attempts': 0,
+            'failures': 0,
+            'suspicions': 0,
+            'blocks': 0,
+        }
+        self.buckets.append(bucket)
+        self.current_bucket = bucket
 
-    # Load blocklist
-    with open(BLOCKLIST_FILE, "a+") as f:
-        f.seek(0)
-        blocked = set(line.strip() for line in f.readlines())
-    
-    if ip in blocked:
+    def _roll_buckets(self):
+        now = time.time()
+        bucket_ts = int(now // WINDOW_SIZE) * WINDOW_SIZE
+        if not self.buckets or bucket_ts != self.current_bucket['start']:
+            self._start_new_bucket()
+
+    def record_attempt(self, ip, user_id, geo, sim_type, result,
+                       is_suspicious=False, is_blocked=False):
+        # apply blocklist: if ip already blocked, override record
+        if ip in self.blocked_ips:
+            is_blocked = True
+            is_suspicious = True
+
+        # roll buckets and update stats
+        self._roll_buckets()
+        record = {
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime()),
+            'ip': ip,
+            'user': user_id,
+            'geo': geo,
+            'sim_type': sim_type,
+            'result': result,
+            'is_suspicious': is_suspicious,
+            'is_blocked': is_blocked,
+        }
+        b = self.current_bucket
+        b['attempts'] += 1
+        if result == 'FAILURE':
+            b['failures'] += 1
+        if is_suspicious:
+            b['suspicions'] += 1
+        if is_blocked:
+            b['blocks'] += 1
+
+        # record in live-feed
+        self.records.appendleft(record)
+
+        # append to logs.txt as JSON line
+        with open(LOGS_PATH, 'a') as lf:
+            lf.write(json.dumps(record) + '\n')
+
+        # if newly blocked, persist to blocklist.txt
+        if is_blocked and ip not in self.blocked_ips:
+            self.blocked_ips.add(ip)
+            with open(BLOCKLIST_PATH, 'a') as bf:
+                bf.write(ip + '\n')
+
+        return record
+
+    def get_stats(self):
+        # prepare arrays for charting
+        labels = [b['start'] for b in self.buckets]
         return {
-            "status": "ignored",
-            "message": f"{ip} is already blocked."
+            'labels': labels,
+            'attempts': [b['attempts'] for b in self.buckets],
+            'failures': [b['failures'] for b in self.buckets],
+            'suspicions': [b['suspicions'] for b in self.buckets],
+            'blocks': [b['blocks'] for b in self.buckets],
         }
 
-    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-    result = "SUCCESS" if success else "FAILURE"
-    log_entry = f"[{timestamp}] IP: {ip} - {result}"
-    
-    with open(LOG_FILE, "a") as f:
-        f.write(log_entry + "\n")
-    
-    total_attempts += 1
-    unique_ips.add(ip)
-
-    if not success:
-        fail_streak[ip] += 1
-        if fail_streak[ip] == FAIL_THRESHOLD:
-            alerts_triggered += 1
-            with open(BLOCKLIST_FILE, "a") as f:
-                f.write(f"{ip}\n")
-            return {
-                "status": "alert",
-                "ip": ip,
-                "message": f"{ip} blocked after {FAIL_THRESHOLD} failed attempts.",
-                "rate_limited": rate_limited
-            }
-    else:
-        fail_streak[ip] = 0
-
-    return {
-        "status": "logged",
-        "ip": ip,
-        "success": success,
-        "streak": fail_streak[ip],
-        "rate_limited": rate_limited
-    }
-
-def get_stats():
-    now = time.time()
-    # Count attempts in the last 2 seconds
-    recent_attempts = [ts for ts in recent_attempt_timestamps if now - ts <= 2]
-    return {
-        "total_attempts": total_attempts,
-        "alerts_triggered": alerts_triggered,
-        "unique_ips": len(unique_ips),
-        "recent_attempts": len(recent_attempts)
-    }
-
-def get_blocklist():
-    try:
-        with open(BLOCKLIST_FILE, "r") as f:
-            return [line.strip() for line in f.readlines()]
-    except FileNotFoundError:
-        return []
-
-def get_recent_logs():
-    return list(recent_logs)
-
-def reset_tracker_state():
-    global fail_streak, unique_ips, total_attempts, alerts_triggered, recent_attempt_timestamps
-    fail_streak.clear()
-    unique_ips.clear()
-    total_attempts = 0
-    alerts_triggered = 0
-    recent_attempt_timestamps.clear()
-    print("[TRACKER RESET] All internal state cleared.")
-
+    def get_recent(self, limit=50):
+        # return the most recent `limit` records
+        return list(self.records)[:limit]

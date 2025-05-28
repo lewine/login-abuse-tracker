@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login Abuse Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background: #111; color: #eee; font-family: sans-serif; padding: 1rem; }
+    .controls, .stats-cards { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    .card { background: #222; padding: 1rem; border-radius: 8px; flex: 1; text-align: center; }
+    button { background: #444; color: #eee; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #555; }
+    .container { display: flex; gap: 1rem; align-items: flex-start; }
+    .chart-container {
+      flex: 2;
+      background: #222;
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    .feed-container {
+      flex: 1.175;
+      background: #222;
+      padding: 1rem;
+      border-radius: 8px;
+      max-height: 900px;
+    }
+    #live-feed div { padding: 4px; margin-bottom: 2px; border-radius: 4px; font-family: monospace; line-height: 1.4; }
+    .timestamp { color: #888; margin-right: 0.5rem; }
+    .ip { color: #0f0; margin-right: 0.5rem; }
+    .geo { color: #0cf; margin-right: 0.5rem; }
+    .user { color: #ffc; margin-right: 0.5rem; }
+    .sim_type { text-transform: uppercase; margin-right: 0.5rem; }
+    .success { color: #00ffcc; font-weight: bold; }
+    .failure { color: #ff6666; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Login Abuse Tracker</h1>
+
+  <div class="controls">
+    <button id="btn-normal">Run Simulation</button>
+    <button id="btn-bruteforce">Brute Force Attack</button>
+    <button id="btn-geohop">Geo-Hop Attack</button>
+    <button id="btn-credstuff">Credential Stuffing</button>
+  </div>
+
+  <div class="stats-cards">
+    <div class="card">
+      <h3>Suspicious Events</h3>
+      <p id="suspicionCount">0</p>
+    </div>
+    <div class="card">
+      <h3>Recent Attempts</h3>
+      <p id="attemptCount">0</p>
+    </div>
+    <div class="card">
+      <h3>Failures</h3>
+      <p id="failureCount">0</p>
+    </div>
+    <div class="card">
+      <h3>Blocks</h3>
+      <p id="blockCount">0</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="chart-container">
+      <h2 style="margin-top:0;">Live Login Traffic</h2>
+      <canvas id="trafficChart" width="800" height="400"></canvas>
+    </div>
+    <div class="feed-container">
+      <h2 style="margin-top:0;">Recent Login Attempts</h2>
+      <div id="live-feed"></div>
+    </div>
+  </div>
+
+  <script>
+    const ctx = document.getElementById('trafficChart').getContext('2d');
+    const trafficChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'Attempts', data: [], borderColor: 'gray', fill: false },
+          { label: 'Failures', data: [], borderColor: 'red', fill: false },
+          { label: 'Suspicions', data: [], borderColor: 'yellow', fill: false },
+          { label: 'Blocks', data: [], borderColor: 'black', fill: false }
+        ]
+      },
+      options: {
+        scales: {
+          x: { display: false, ticks: { display: false } },
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    async function loadData() {
+      const res = await fetch('/stats');
+      const stats = await res.json();
+
+      const sum = arr => arr.reduce((a, b) => a + b, 0);
+      document.getElementById('attemptCount').textContent = sum(stats.attempts);
+      document.getElementById('failureCount').textContent = sum(stats.failures);
+      document.getElementById('suspicionCount').textContent = sum(stats.suspicions);
+      document.getElementById('blockCount').textContent = sum(stats.blocks);
+
+      const recentRes = await fetch('/recent');
+      const feed = document.getElementById('live-feed');
+      feed.innerHTML = '';
+      stats.recent.slice(0, 20).forEach(rec => {
+        const div = document.createElement('div');
+        if (rec.is_blocked) div.style.backgroundColor = 'red';
+        else if (rec.is_suspicious) div.style.backgroundColor = 'yellow';
+        div.innerHTML = `
+          <span class="timestamp">[${rec.timestamp}]</span>
+          <span class="ip">${rec.ip}</span>
+          <span class="geo">${rec.geo}</span>
+          <span class="user">user:${rec.user}</span>
+          <span class="sim_type">${rec.sim_type}</span>
+          &ndash;
+          <span class="${rec.result.toLowerCase()}">${rec.result}</span>
+        `;
+        feed.appendChild(div);
+      });
+
+      trafficChart.data.labels = stats.labels.map(ts => new Date(ts * 1000));
+      trafficChart.data.datasets[0].data = stats.attempts;
+      trafficChart.data.datasets[1].data = stats.failures;
+      trafficChart.data.datasets[2].data = stats.suspicions;
+      trafficChart.data.datasets[3].data = stats.blocks;
+
+      trafficChart.update();
+    }
+    loadData();
+    setInterval(loadData, 500);
+    
+
+    const sendSim = type => fetch('/simulate', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({sim_type: type})
+    });
+    document.getElementById('btn-normal').onclick = () => {
+      for (let i = 0; i < 5; i++) {
+        const delay = 250 + Math.random() * 750;  
+        setTimeout(() => sendSim('normal'), delay);
+      }
+    };
+    document.getElementById('btn-bruteforce').onclick = () => sendSim('bruteforce');
+    document.getElementById('btn-geohop').onclick      = () => sendSim('geohop');
+    document.getElementById('btn-credstuff').onclick  = () => sendSim('credstuff');
+  </script>
+</body>
+</html>
