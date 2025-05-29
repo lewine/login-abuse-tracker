@@ -9,8 +9,8 @@ WINDOW_SIZE = 2   # seconds per bucket
 MAX_BUCKETS = 5  # keep ~1 minute of history
 
 # detection thresholds
-BRUTE_THRESHOLD = 10        # failures to trigger brute force detection
-BRUTE_WINDOW = 3          # seconds for brute force sliding window
+BRUTE_THRESHOLD = 5        # failures to trigger brute force detection
+BRUTE_WINDOW = 5          # seconds for brute force sliding window
 GEOHOP_THRESHOLD = 2          # seconds for rapid geo-hop detection
 CRED_THRESHOLD = 2         # distinct user hits to trigger credential stuffing detection
 CRED_WINDOW = 15           # seconds for credential stuffing sliding window
