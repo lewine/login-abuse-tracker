@@ -12,7 +12,7 @@ GEO_REGIONS = ['US:NY', 'US:CA', 'US:TX', 'US:IL', 'US:FL',
                'AU:NS', 'AU:VI', 'IN:DL', 'IN:MH', 'BR:SP']
 USER_IDS = list(range(1, 999))
 # default server endpoint
-DEFAULT_URL = 'http://localhost:5000'
+DEFAULT_URL = os.getenv('SERVER_URL', 'http://localhost:5000')
 
 # -- User deck for draw without replacement --
 class UserDeck:
@@ -84,7 +84,7 @@ def bruteforce_worker(ip, user_id, geo, duration, server_url):
 
 # Brute-force spawns threads, draws unique user
 
-def run_bruteforce(rate=0.1, duration=30, failure_rate=0.2, server_url='http://localhost:5000'):
+def run_bruteforce(rate=0.1, duration=30, failure_rate=0.2, server_url=DEFAULT_URL'):
     # draw a user from deck
     user_id = deck.draw()
     geo = random.choice(GEO_REGIONS)
@@ -104,7 +104,7 @@ def run_bruteforce(rate=0.1, duration=30, failure_rate=0.2, server_url='http://l
 
 # Geo-hop draws as before
 
-def run_geohop(rate, duration, failure_rate, server_url='http://localhost:5000'):
+def run_geohop(rate, duration, failure_rate, server_url=DEFAULT_URL):
     end_time = time.time() + duration
     user_id = deck.draw()
     prev_geo = random.choice(GEO_REGIONS)
@@ -128,7 +128,7 @@ def run_geohop(rate, duration, failure_rate, server_url='http://localhost:5000')
         time.sleep(random.uniform(1,5))
 
 # Credential stuffing draws user for each attempt but ensures unique draws too
-def run_credstuff(rate, duration, failure_rate, server_url='http://localhost:5000'):
+def run_credstuff(rate, duration, failure_rate, server_url=DEFAULT_URL):
     import random, time, requests
     # draw-without-replacement deck
     local_deck = UserDeck(USER_IDS)
