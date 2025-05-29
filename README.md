@@ -2,14 +2,10 @@
 
 A **lightweight**, **real-time** login-abuse detection system built with Flask, designed to simulate login traffic, detect multiple attack patterns, block offenders, and visualize everything on a live dashboard.
 
----
-
 ## 🚀 Live Demo
 
 https://login-abuse-tracker.onrender.com  
 > *Free-tier spin-up may take 15–30 s.*
-
----
 
 ## 📖 Usage
 1. Click Run Simulation on the dashboard to simulate real non-attacker traffic.
@@ -17,8 +13,6 @@ https://login-abuse-tracker.onrender.com
 2. Choose your attack type (normal / bruteforce / geohop / credstuff). All attacks can run in parallel.
 
 3. Monitor the live-updating charts, recent log feed, and blocklist.
-
----
 
 ## 🔍 Features
 
@@ -39,8 +33,6 @@ https://login-abuse-tracker.onrender.com
   Live charts (Chart.js) of attempts, failures, suspicions, blocks; recent log feed; blocked list.
 - **Stateless Reset**  
   Each simulation run clears logs, stats, and blocklist for a fresh start.
-
----
 
 ## ⚙️ Tech Stack
 
