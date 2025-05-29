@@ -68,10 +68,6 @@ def run_normal(rate, duration, failure_rate, server_url=DEFAULT_URL):
 
 # Bruteforce worker unchanged, draws user via deck
 def bruteforce_worker(ip, user_id, geo, duration, server_url):
-    """
-    ip, user_id, geo, duration all as before,
-    server_url is the full "http://host:port" you passed in.
-    """
     end_time = time.time() + duration
     while time.time() < end_time:
         payload = {
@@ -86,9 +82,9 @@ def bruteforce_worker(ip, user_id, geo, duration, server_url):
             requests.post(f"{server_url}/attempt", json=payload)
         except Exception as e:
             print(f"[bruteforce worker] Error: {e}")
+        time.sleep(0.5)
 
 # Brute-force spawns threads, draws unique user
-
 def run_bruteforce(rate, duration, failure_rate, server_url):
     user_id = random.choice(USER_IDS)
     geo     = random.choice(GEO_REGIONS)
