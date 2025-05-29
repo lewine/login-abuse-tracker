@@ -37,7 +37,7 @@ def run_simulation(sim_type='normal', rate=2, duration=120, failure_rate=0.2, se
     if sim_type == 'normal':
         return run_normal(rate, duration, failure_rate, server_url)
     elif sim_type == 'bruteforce':
-        return run_bruteforce(rate, duration, server_url)
+        return run_bruteforce(rate, duration, failure_rate, server_url)
     elif sim_type == 'geohop':
         return run_geohop(rate, duration, failure_rate, server_url)
     elif sim_type == 'credstuff':
