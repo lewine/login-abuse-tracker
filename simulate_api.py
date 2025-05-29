@@ -12,7 +12,7 @@ GEO_REGIONS = ['US:NY', 'US:CA', 'US:TX', 'US:IL', 'US:FL',
                'AU:NS', 'AU:VI', 'IN:DL', 'IN:MH', 'BR:SP']
 USER_IDS = list(range(1, 999))
 # default server endpoint
-DEFAULT_URL = os.getenv('SERVER_URL', 'http://localhost:5000')
+DEFAULT_URL = 'http://localhost:5000'
 
 # -- User deck for draw without replacement --
 class UserDeck:
