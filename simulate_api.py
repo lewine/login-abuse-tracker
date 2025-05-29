@@ -67,40 +67,45 @@ def run_normal(rate, duration, failure_rate, server_url=DEFAULT_URL):
         time.sleep(random.uniform(0.1, 0.7))
 
 # Bruteforce worker unchanged, draws user via deck
-def bruteforce_worker(ip, user_id, geo, duration, server_url=DEFAULT_URL):
+def bruteforce_worker(ip, user_id, geo, duration, server_url):
+    """
+    ip, user_id, geo, duration all as before,
+    server_url is the full "http://host:port" you passed in.
+    """
     end_time = time.time() + duration
     while time.time() < end_time:
         payload = {
-            'ip': ip,
-            'user': user_id,
-            'geo': geo,
-            'sim_type': 'bruteforce',
+            'ip':      ip,
+            'user':    user_id,
+            'geo':     geo,
+            'sim_type':'bruteforce',
             'success': False
         }
         try:
+            # <— use the passed-in server_url instead of the hard-coded one
             requests.post(f"{server_url}/attempt", json=payload)
         except Exception as e:
             print(f"[bruteforce worker] Error: {e}")
 
 # Brute-force spawns threads, draws unique user
 
-def run_bruteforce(rate=0.1, duration=30, failure_rate=0.2, server_url=DEFAULT_URL):
-    # draw a user from deck
-    user_id = deck.draw()
-    geo = random.choice(GEO_REGIONS)
+def run_bruteforce(rate, duration, failure_rate, server_url):
+    user_id = random.choice(USER_IDS)
+    geo     = random.choice(GEO_REGIONS)
     num_workers = 5
     threads = []
     for _ in range(num_workers):
-        ip = f"192.168.0.{random.randint(1, 254)}"
+        ip = f"192.168.0.{random.randint(1,254)}"
         t = threading.Thread(
             target=bruteforce_worker,
-            args=(ip, user_id, geo, duration, server_url),
+            args=(ip, user_id, geo, duration, server_url),  # <— correct
             daemon=True
         )
         t.start()
         threads.append(t)
     for t in threads:
         t.join()
+
 
 # Geo-hop draws as before
 
