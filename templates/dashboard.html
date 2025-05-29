@@ -17,18 +17,45 @@
       padding: 1rem;
       border-radius: 8px;
     }
-    .feed-container {
-      flex: 1.175;
-      background: #222;
-      padding: 1rem;
-      border-radius: 8px;
-      max-height: 900px;
+    /* Container for both feeds */
+    .column {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      flex: 1;
     }
-    #live-feed div { padding: 4px; margin-bottom: 2px; border-radius: 4px; font-family: monospace; line-height: 1.4; }
+    /* And make sure each feed itself can scroll inside its box */
+    .feed-container {
+      background: #222;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      padding-bottom: 1rem;
+    }
+    .feed-container.recent {
+      height: 410px;
+    }
+    .feed-container.blocked {
+      height: 225px;
+    }
+    /* feed scroll area fills space */
+    .feed {
+      flex: 1.1375;
+      overflow-y: auto;
+    }
+    /* log entry styling */
+    #live-feed div, #blocked-feed div {
+      padding: 2px;
+      border-radius: 4px;
+      font-family: monospace;
+      line-height: 1.4;
+    }
     .timestamp { color: #888; margin-right: 0.5rem; }
-    .ip { color: #0f0; margin-right: 0.5rem; }
-    .geo { color: #0cf; margin-right: 0.5rem; }
-    .user { color: #ffc; margin-right: 0.5rem; }
+    .ip { color: #0f0;   margin-right: 0.5rem; }
+    .geo { color: #0cf;   margin-right: 0.5rem; }
+    .user { color: #ffc;   margin-right: 0.5rem; }
     .sim_type { text-transform: uppercase; margin-right: 0.5rem; }
     .success { color: #00ffcc; font-weight: bold; }
     .failure { color: #ff6666; font-weight: bold; }
@@ -68,9 +95,16 @@
       <h2 style="margin-top:0;">Live Login Traffic</h2>
       <canvas id="trafficChart" width="800" height="400"></canvas>
     </div>
-    <div class="feed-container">
-      <h2 style="margin-top:0;">Recent Login Attempts</h2>
-      <div id="live-feed"></div>
+
+    <div class="column">
+      <div class="feed-container recent">
+        <h2>Recent Login Attempts</h2>
+        <div id="live-feed" class="feed"></div>
+      </div>
+      <div class="feed-container blocked">
+        <h2>Blocked IPs</h2>
+        <div id="blocked-feed" class="feed"></div>
+      </div>
     </div>
   </div>
 
@@ -84,7 +118,7 @@
           { label: 'Attempts', data: [], borderColor: 'gray', fill: false },
           { label: 'Failures', data: [], borderColor: 'red', fill: false },
           { label: 'Suspicions', data: [], borderColor: 'yellow', fill: false },
-          { label: 'Blocks', data: [], borderColor: 'black', fill: false }
+          { label: 'Blocks', data: [], borderColor: 'blue', fill: false }
         ]
       },
       options: {
@@ -100,54 +134,106 @@
       const stats = await res.json();
 
       const sum = arr => arr.reduce((a, b) => a + b, 0);
-      document.getElementById('attemptCount').textContent = sum(stats.attempts);
-      document.getElementById('failureCount').textContent = sum(stats.failures);
+      document.getElementById('attemptCount').textContent   = sum(stats.attempts);
+      document.getElementById('failureCount').textContent   = sum(stats.failures);
       document.getElementById('suspicionCount').textContent = sum(stats.suspicions);
-      document.getElementById('blockCount').textContent = sum(stats.blocks);
+      document.getElementById('blockCount').textContent     = sum(stats.blocks);
 
-      const recentRes = await fetch('/recent');
+      // Populate the Recent Attempts feed
       const feed = document.getElementById('live-feed');
       feed.innerHTML = '';
       stats.recent.slice(0, 20).forEach(rec => {
         const div = document.createElement('div');
         if (rec.is_blocked) div.style.backgroundColor = 'red';
-        else if (rec.is_suspicious) div.style.backgroundColor = 'yellow';
+        else if (rec.is_suspicious) div.style.backgroundColor = 'orange';
         div.innerHTML = `
           <span class="timestamp">[${rec.timestamp}]</span>
           <span class="ip">${rec.ip}</span>
           <span class="geo">${rec.geo}</span>
           <span class="user">user:${rec.user}</span>
-          <span class="sim_type">${rec.sim_type}</span>
+          <span class="sim_type">${rec.sim_type.toUpperCase()}</span>
           &ndash;
           <span class="${rec.result.toLowerCase()}">${rec.result}</span>
         `;
         feed.appendChild(div);
       });
 
-      trafficChart.data.labels = stats.labels.map(ts => new Date(ts * 1000));
+      // Populate the Blocked IPs feed
+      const blockedFeed = document.getElementById('blocked-feed');
+      blockedFeed.innerHTML = '';
+      stats.recent.slice().reverse()
+        .filter(rec => rec.is_blocked)
+        .slice(0, 50)
+        .forEach(rec => {
+          const div = document.createElement('div');
+          div.style.backgroundColor = 'red';
+          div.innerHTML = `
+            <span class="timestamp">[${rec.timestamp}]</span>
+            <span class="ip">${rec.ip}</span>
+            <span class="geo">${rec.geo}</span>
+            <span class="user">user:${rec.user}</span>
+            <span class="sim_type">${rec.sim_type.toUpperCase()}</span>
+            &ndash;
+            <span class="${rec.result === 'SUCCESS' ? 'success' : 'failure'}">${rec.result}</span>
+          `;
+          blockedFeed.appendChild(div);
+        });
+
+      // Update the chart
+      trafficChart.data.labels           = stats.labels.map(ts => new Date(ts * 1000));
       trafficChart.data.datasets[0].data = stats.attempts;
       trafficChart.data.datasets[1].data = stats.failures;
       trafficChart.data.datasets[2].data = stats.suspicions;
       trafficChart.data.datasets[3].data = stats.blocks;
-
       trafficChart.update();
     }
+
+    // Replace loadBlocklist() with:
+    async function loadBlockedRecords() {
+      const res = await fetch('/blocked');
+      if (!res.ok) return;
+      const recs = await res.json();
+      const blockedFeed = document.getElementById('blocked-feed');
+      blockedFeed.innerHTML = '';
+      recs.forEach(rec => {
+        const div = document.createElement('div');
+        div.style.backgroundColor = 'red';
+        div.innerHTML = `
+          <span class="timestamp">[${rec.timestamp}]</span>
+          <span class="ip">${rec.ip}</span>
+          <span class="geo">${rec.geo}</span>
+          <span class="user">user:${rec.user}</span>
+          <span class="sim_type">${rec.sim_type.toUpperCase()}</span>
+          &ndash;
+          <span class="${rec.result === 'SUCCESS' ? 'success' : 'failure'}">
+            ${rec.result}
+          </span>
+        `;
+        blockedFeed.appendChild(div);
+      });
+    }
+
     loadData();
+    loadBlockedRecords();
     setInterval(loadData, 500);
-    
+    setInterval(loadBlockedRecords, 500);
 
     const sendSim = type => fetch('/simulate', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({sim_type: type})
     });
+
     document.getElementById('btn-normal').onclick = () => {
       for (let i = 0; i < 5; i++) {
-        const delay = 250 + Math.random() * 750;  
+        const delay = 250 + Math.random() * 750;
         setTimeout(() => sendSim('normal'), delay);
       }
     };
+
     document.getElementById('btn-bruteforce').onclick = () => sendSim('bruteforce');
-    document.getElementById('btn-geohop').onclick      = () => sendSim('geohop');
+
+    document.getElementById('btn-geohop').onclick = () => sendSim('geohop');
     document.getElementById('btn-credstuff').onclick  = () => sendSim('credstuff');
   </script>
 </body>
