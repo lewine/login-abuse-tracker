@@ -67,7 +67,7 @@ def run_normal(rate, duration, failure_rate, server_url=DEFAULT_URL):
         time.sleep(random.uniform(0.1, 0.7))
 
 # Bruteforce worker unchanged, draws user via deck
-def bruteforce_worker(ip, user_id, geo, duration, server_url):
+def bruteforce_worker(ip, user_id, geo, duration, server_url=DEFAULT_URL):
     end_time = time.time() + duration
     while time.time() < end_time:
         payload = {
