@@ -79,13 +79,15 @@ def blocked_records():
 @app.route('/simulate', methods=['POST'])
 def simulate():
     params     = request.get_json() or {}
-    sim_type   = params.get('sim_type',    'normal')
-    rate       = params.get('rate',        0.1)
-    duration   = params.get('duration',    60)
-    failure_rt = params.get('failure_rate',0.2)
-    # Build a server_url that matches the actual host:port
+    sim_type   = params.get('sim_type',     'normal')
+    rate       = params.get('rate',         0.1)
+    duration   = params.get('duration',     60)
+    failure_rt = params.get('failure_rate', 0.2)
+
+    # Build the real server URL (includes host + port)
     server_url = request.host_url.rstrip('/')  
 
+    # Kick off the background thread with the correct URL
     thread = threading.Thread(
         target=run_simulation,
         args=(sim_type, rate, duration, failure_rt, server_url),
