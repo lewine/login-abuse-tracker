@@ -13,7 +13,7 @@ BRUTE_THRESHOLD = 5        # failures to trigger brute force detection
 BRUTE_WINDOW = 5          # seconds for brute force sliding window
 GEOHOP_THRESHOLD = 2          # seconds for rapid geo-hop detection
 CRED_THRESHOLD = 2         # distinct user hits to trigger credential stuffing detection
-CRED_WINDOW = 15           # seconds for credential stuffing sliding window
+CRED_WINDOW = 20           # seconds for credential stuffing sliding window
 
 # file paths
 BLOCKLIST_PATH = os.path.join(os.getcwd(), 'blocklist.txt')
