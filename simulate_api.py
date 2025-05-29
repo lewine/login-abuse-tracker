@@ -84,7 +84,7 @@ def bruteforce_worker(ip, user_id, geo, duration, server_url):
 
 # Brute-force spawns threads, draws unique user
 
-def run_bruteforce(rate=0.1, duration=30, failure_rate=0.2, server_url=DEFAULT_URL'):
+def run_bruteforce(rate=0.1, duration=30, failure_rate=0.2, server_url=DEFAULT_URL):
     # draw a user from deck
     user_id = deck.draw()
     geo = random.choice(GEO_REGIONS)
