@@ -1,0 +1,3 @@
+{"timestamp": "2025-06-02 14:30:06", "ip": "5.6.7.8", "user": "user3", "geo": "CN", "sim_type": "cred-stuff", "result": "FAILURE", "is_suspicious": false, "is_blocked": false}
+{"timestamp": "2025-06-02 14:30:06", "ip": "5.6.7.8", "user": "user4", "geo": "CN", "sim_type": "cred-stuff", "result": "FAILURE", "is_suspicious": true, "is_blocked": false}
+{"timestamp": "2025-06-02 14:30:06", "ip": "5.6.7.8", "user": "user5", "geo": "CN", "sim_type": "cred-stuff", "result": "FAILURE", "is_suspicious": true, "is_blocked": true}
