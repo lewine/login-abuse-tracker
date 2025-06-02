@@ -1,4 +1,4 @@
-name: Docker Build and Lint
+name: Docker Build, Test, and Lint
 
 on:
   push:
@@ -27,10 +27,9 @@ jobs:
       - name: Lint (optional, placeholder)
         run: echo "Linting step here"
 
-      - name: Run tests (placeholder)
+      - name: Run tests
         run: |
-          echo "No tests yet – skipping"
-          exit 0
+          PYTHONPATH=. pytest
 
       - name: Build Docker image
         run: docker build -t login-abuse-tracker .
