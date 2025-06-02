@@ -28,8 +28,9 @@ jobs:
         run: echo "Linting step here"
 
       - name: Run tests
-        run: |
-          PYTHONPATH=. pytest
+        env:
+          PYTHONPATH: .
+        run: pytest
 
       - name: Build Docker image
         run: docker build -t login-abuse-tracker .
