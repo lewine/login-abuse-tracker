@@ -22,8 +22,5 @@ jobs:
           pip install -r requirements.txt
           pip install .
 
-      - name: Set PYTHONPATH
-        run: export PYTHONPATH=$PYTHONPATH:$(pwd)
-
       - name: Run Tests
-        run: pytest
+        run: PYTHONPATH=. pytest
