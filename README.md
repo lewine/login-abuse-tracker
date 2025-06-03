@@ -3,8 +3,12 @@
 A **lightweight**, **real-time** login-abuse detection system built with Flask, designed to simulate login traffic, detect multiple attack patterns, block offenders, and visualize everything on a live dashboard.
 
 ## 🚀 Live Demo
+https://login-abuse-tracker-docker.onrender.com
+![Dockerized](https://img.shields.io/badge/deployed%20with-docker-blue)
 
-https://login-abuse-tracker-docker.onrender.com/ 
+### Deployed with Docker  
+This project is containerized and deployed via Docker on Render, using GitHub Actions for CI testing.
+
 > *Free-tier spin-up may take 15–30 s.*
 
 ## 📖 Usage
