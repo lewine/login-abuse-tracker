@@ -137,11 +137,11 @@ def run_credstuff(rate, duration, failure_rate, server_url=DEFAULT_URL):
     interval = 1.0 / rate
     end_time = time.time() + duration
     geo = random.choice(GEO_REGIONS)
-    current_failure = random.uniform(0.1, 0.4)
-    success = random.random() > current_failure
     ip = f"192.168.0.{random.randint(1,254)}"
 
     while time.time() < end_time:
+        current_failure = random.uniform(0.1, 0.4)
+        success = random.random() > current_failure
         user_id = local_deck.draw()
         payload = {
             'ip':      ip,
