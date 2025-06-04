@@ -1,29 +1,19 @@
 # .github/workflows/docker.yml
 
-name: Build, Test, and Push Docker Image
+name: Build (but don’t push)
 
 on:
   push:
-    branches:
-      - main
-    # Optionally, also trigger on semver tags:
-    # tags:
-    #   - 'v*.*.*'
-  pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # ────────────────────────────────────────────────────────────────────────────
-      # 1) Build React front end inside Docker context
-      # ────────────────────────────────────────────────────────────────────────────
       - name: Set up Node.js 18
         uses: actions/setup-node@v4
         with:
@@ -37,9 +27,6 @@ jobs:
         working-directory: ./login-abuse-ui
         run: npm run build
 
-      # ────────────────────────────────────────────────────────────────────────────
-      # 2) Set up Python and run pytest
-      # ────────────────────────────────────────────────────────────────────────────
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
@@ -53,20 +40,11 @@ jobs:
       - name: Run pytest
         env:
           PYTHONPATH: ${{ github.workspace }}
-        run: |
-          pytest tests/test_tracker.py
+        run: pytest tests/test_tracker.py
 
-      # ────────────────────────────────────────────────────────────────────────────
-      # 4) Build & push multi-stage Docker image
-      # ────────────────────────────────────────────────────────────────────────────
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: yourdockerhubuser/login-abuse-tracker:latest
-          # If you want versioned tags, you can add:
-          # tags: |
-          #   yourdockerhubuser/login-abuse-tracker:latest
-          #   yourdockerhubuser/login-abuse-tracker:${{ github.sha }}
+      # ─────────────────────────────────────────────────────────────
+      # Instead of logging in & pushing, just build the image
+      # ─────────────────────────────────────────────────────────────
+      - name: Build Docker image only
+        run: |
+          docker build -t login-abuse-tracker:test .
