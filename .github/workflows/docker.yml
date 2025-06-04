@@ -1,35 +1,81 @@
-name: Docker Build and Lint
+# .github/workflows/docker.yml
+
+name: Build, Test, and Push Docker Image
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+    # Optionally, also trigger on semver tags:
+    # tags:
+    #   - 'v*.*.*'
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Python
+      # ────────────────────────────────────────────────────────────────────────────
+      # 1) Build React front end inside Docker context
+      # ────────────────────────────────────────────────────────────────────────────
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install React dependencies
+        working-directory: ./login-abuse-ui
+        run: npm ci
+
+      - name: Build React app
+        working-directory: ./login-abuse-ui
+        run: npm run build
+
+      # ────────────────────────────────────────────────────────────────────────────
+      # 2) Set up Python and run pytest
+      # ────────────────────────────────────────────────────────────────────────────
+      - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install --no-cache-dir -r requirements.txt
 
-      - name: Lint (optional, placeholder)
-        run: echo "Linting step here"
-
-      - name: Run tests
+      - name: Run pytest
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
-          PYTHONPATH=. pytest
+          pytest tests/test_tracker.py
 
-      - name: Build Docker image
-        run: docker build -t login-abuse-tracker .
+      # ────────────────────────────────────────────────────────────────────────────
+      # 3) Log in to Docker Hub (or GHCR, etc.)
+      # ────────────────────────────────────────────────────────────────────────────
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # ────────────────────────────────────────────────────────────────────────────
+      # 4) Build & push multi-stage Docker image
+      # ────────────────────────────────────────────────────────────────────────────
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: yourdockerhubuser/login-abuse-tracker:latest
+          # If you want versioned tags, you can add:
+          # tags: |
+          #   yourdockerhubuser/login-abuse-tracker:latest
+          #   yourdockerhubuser/login-abuse-tracker:${{ github.sha }}

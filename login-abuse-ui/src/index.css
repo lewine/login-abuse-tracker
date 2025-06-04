@@ -21,11 +21,11 @@ body {
   font-style: normal;
 }
 
-.header h1,
 .header h2,
 .card h3,
 .feed-box h3 {
   font-weight: 600;
+  font-size: 1.2rem;
 }
 
 /* 2) Header (title + settings cog) */
@@ -236,4 +236,128 @@ body {
 }
 .settings-cog:hover {
   color: #fff;
+}
+
+
+
+.settings-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.settings-button {
+  background: none;
+  border: none;
+  color: #ddd;
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* ---------- The Dropdown Panel ---------- */
+.dropdown-panel.wide {
+  position: absolute;
+  top: 32px; 
+  right: 0;
+  background: #222;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 12px;
+  width: 860px;       /* wide enough for 5 columns (~162px each) + padding */
+  max-height: 80vh;   /* scroll if content is too tall */
+  overflow-y: auto;
+  color: #eee;
+  z-index: 100;
+}
+
+.dropdown-panel.wide h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  border-bottom: 1px solid #555;
+  padding-bottom: 4px;
+}
+
+/* ---------- Columns Container ---------- */
+.columns-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+/* Each column (Defense or one attack type) */
+.column {
+  display: flex;
+  flex-direction: column;
+  width: 162px;   /* ~ equal width for each of the 5 columns */
+  margin-right: 8px;
+}
+
+.column:last-child {
+  margin-right: 0;
+}
+
+.column h5 {
+  margin: 0 0 6px 0;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #444;
+  padding-bottom: 2px;
+  text-transform: capitalize;
+  color: #ddd;
+}
+
+/* ---------- Shared field styling (input under label) ---------- */
+.sd-field {
+  display: flex;
+  flex-direction: column;   /* ensure label on top, input below */
+  margin: 6px 0;            /* consistent vertical spacing */
+  font-size: 0.9rem;
+}
+
+.sd-field label {
+  margin-bottom: 2px;       /* small gap between label text and input */
+}
+
+.sd-field input {
+  width: 100%;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #eee;
+  padding: 4px;
+  box-sizing: border-box;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+/* ---------- Save / Cancel row ---------- */
+.sd-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.save-button,
+.cancel-button {
+  background: #444;
+  border: 1px solid #666;
+  border-radius: 4px;
+  color: #eee;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-left: 8px;
+}
+
+.save-button:disabled,
+.cancel-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- Error message styling ---------- */
+.error {
+  margin-top: 6px;
+  color: #e74c3c;
+  font-size: 0.85rem;
+  text-align: center;
 }

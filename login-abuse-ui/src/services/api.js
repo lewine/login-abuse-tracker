@@ -46,11 +46,25 @@ export async function getStats() {
  * POST /simulate with { sim_type: "normal" | "bruteforce" | "geohop" | "credstuff" }
  * Returns { status: "ok" } (if everything went through).
  */
-export async function simulate(simType) {
+export async function simulate(
+  simType,
+  delay = 1.0,
+  iterations = 30,
+  failureRate = 0.2,
+  workers = 1
+) {
+  const payload = {
+    sim_type: simType,
+    delay: delay,
+    iterations: iterations,
+    failure_rate: failureRate,
+    workers: workers,
+  };
+
   const res = await fetch(`${BASE_URL}/simulate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sim_type: simType }),
+    body: JSON.stringify(payload),
   });
   return checkRes(res);
 }
@@ -73,6 +87,13 @@ export async function setThresholds(thresholdsObj) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(thresholdsObj),
+  });
+  return checkRes(res);
+}
+
+export async function reset() {
+  const res = await fetch(`${BASE_URL}/reset`, {
+    method: "POST",
   });
   return checkRes(res);
 }

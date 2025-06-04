@@ -1,157 +1,131 @@
+# app.py
+
 import os
 import threading
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask import send_from_directory
 
 from tracker import AttackTracker
 from simulate_api import run_simulation
 
 app = Flask(__name__)
-CORS(app)  # enable CORS for all routes
+CORS(app)  # allow cross-origin requests
 
+# ──────────────────────────────────────────────────────────────────────────────
 # Instantiate the tracker
+# ──────────────────────────────────────────────────────────────────────────────
 tracker = AttackTracker()
 
 # Path to store persistent blocklist entries
-BLOCKLIST_PATH = os.path.join(os.getcwd(), 'blocklist.txt')
+BLOCKLIST_PATH = os.path.join(os.getcwd(), "blocklist.txt")
+LOGS_PATH = os.path.join(os.getcwd(), "logs.txt")
 
-# In‐memory sets of blocked IPs and locked users
+# In-memory sets for blocked IPs and locked users
 blocked_ips = set()
 locked_users = set()
 
-# Load any previously‐saved blocklist entries from file on startup
+# Load any previously-saved blocklist entries from file on startup
 if os.path.exists(BLOCKLIST_PATH):
     with open(BLOCKLIST_PATH) as f:
         for line in f:
             line = line.strip()
-            if line.startswith('IP:'):
-                blocked_ips.add(line.split(':', 1)[1])
-            elif line.startswith('USER:'):
-                locked_users.add(line.split(':', 1)[1])
+            if line.startswith("IP:"):
+                blocked_ips.add(line.split(":", 1)[1])
+            elif line.startswith("USER:"):
+                locked_users.add(line.split(":", 1)[1])
 
 
-@app.route('/attempt', methods=['POST'])
+# ──────────────────────────────────────────────────────────────────────────────
+# 1) /attempt endpoint (unchanged)
+# ──────────────────────────────────────────────────────────────────────────────
+@app.route("/attempt", methods=["POST"])
 def attempt():
-    """
-    Record a single login attempt. Returns JSON of the recorded event,
-    and, if this IP/user is blocked, returns HTTP 403.
-    """
     data = request.get_json() or {}
-    ip = data.get('ip')
-    user = str(data.get('user', ''))
+    ip = data.get("ip")
+    user = str(data.get("user", ""))
 
     # Always record the attempt (even if blocked)
     record = tracker.record_attempt(
         ip=ip,
         user_id=user,
-        geo=data.get('geo', ''),
-        sim_type=data.get('sim_type', 'normal'),
-        result='SUCCESS' if data.get('success') else 'FAILURE'
+        geo=data.get("geo", ""),
+        sim_type=data.get("sim_type", "normal"),
+        result="SUCCESS" if data.get("success") else "FAILURE",
     )
 
     # If this record flagged a new block, persist it
-    if record.get('is_blocked'):
+    if record.get("is_blocked"):
         entry = None
-        if record['sim_type'] in ('bruteforce', 'geohop'):
+        if record["sim_type"] in ("bruteforce", "geohop"):
             # Block user (lock user account)
             if user not in locked_users:
                 locked_users.add(user)
                 entry = f"USER:{user}"
         else:
-            # Block IP for credential‐stuffing or normal‐mode blocks
+            # Block IP for credential-stuffing or normal-mode blocks
             if ip not in blocked_ips:
                 blocked_ips.add(ip)
                 entry = f"IP:{ip}"
 
         if entry:
-            # Append to blocklist.txt so it’s persistent
-            with open(BLOCKLIST_PATH, 'a') as bf:
+            with open(BLOCKLIST_PATH, "a") as bf:
                 bf.write(entry + "\n")
 
     # If this IP or user is in the blockset, return 403
     if ip in blocked_ips:
-        return jsonify({'error': 'IP blocked'}), 403
+        return jsonify({"error": "IP blocked"}), 403
     if user in locked_users:
-        return jsonify({'error': 'User locked'}), 403
+        return jsonify({"error": "User locked"}), 403
 
     # Otherwise return the record as normal
     return jsonify(record), 200
 
 
-@app.route('/stats', methods=['GET'])
+# ──────────────────────────────────────────────────────────────────────────────
+# 2) /stats endpoint (unchanged)
+# ──────────────────────────────────────────────────────────────────────────────
+@app.route("/stats", methods=["GET"])
 def stats():
-    """
-    Return the aggregated stats (arrays for charting) plus the recent log feed.
-    Shape:
-      {
-        attempts:   [ ... ],
-        failures:   [ ... ],
-        suspicions: [ ... ],
-        blocks:     [ ... ],
-        labels:     [ ... ],
-        recent:     [ {timestamp, ip, user, geo, sim_type, result, is_suspicious, is_blocked}, ... ]
-      }
-    """
     payload = tracker.get_stats()
-    payload['recent'] = tracker.get_recent()
+    payload["recent"] = tracker.get_recent()
     return jsonify(payload), 200
 
 
-@app.route('/simulate', methods=['POST'])
+# ──────────────────────────────────────────────────────────────────────────────
+# 3) /simulate endpoint (unchanged)
+# ──────────────────────────────────────────────────────────────────────────────
+@app.route("/simulate", methods=["POST"])
 def simulate():
-    """
-    Kick off a background thread to run a simulation of “sim_type” traffic.
-    The thread will call /attempt on this same server repeatedly.
-    """
-    params = request.get_json() or {}
-    sim_type   = params.get('sim_type',     'normal')
-    rate       = params.get('rate',         0.1)
-    duration   = params.get('duration',     60)
-    failure_rt = params.get('failure_rate', 0.2)
+    data = request.get_json() or {}
+    sim_type = data.get("sim_type", "normal")
+    delay = data.get("delay", 1.0)
+    iterations = data.get("iterations", 30)
+    failure_rt = data.get("failure_rate", 0.2)
+    workers = data.get("workers", 1)
 
-    # Build the server URL (e.g. "http://localhost:5000")
-    server_url = request.host_url.rstrip('/')
+    server_url = request.host_url.rstrip("/")
 
-    # Start the background thread without blocking the request
     thread = threading.Thread(
         target=run_simulation,
-        args=(sim_type, rate, duration, failure_rt, server_url),
-        daemon=True
+        args=(sim_type, delay, iterations, failure_rt, server_url, workers),
+        daemon=True,
     )
     thread.start()
-
-    return jsonify({'status': 'simulation started'}), 202
-
-
-@app.route('/thresholds', methods=['GET'])
-def get_thresholds():
-    """
-    Return the current threshold settings for brute‐force, geo‐hop, and cred‐stuff.
-    The React dropdown will call this to populate its form fields.
-    """
-    return jsonify({
-        "bruteforce_limit": tracker.BF_THRESHOLD,
-        "geohop_interval":  tracker.GH_INTERVAL,
-        "credstuff_limit":  tracker.CS_LIMIT
-    }), 200
+    return jsonify({"status": "simulation started"}), 202
 
 
-@app.route('/thresholds', methods=['POST'])
-def post_thresholds():
-    """
-    Update the threshold values. React will POST an object like:
-      { bruteforce_limit: 5, geohop_interval: 60, credstuff_limit: 10 }
-    """
-    data = request.get_json() or {}
-    tracker.update_thresholds(
-        bf=data.get("bruteforce_limit"),
-        gh=data.get("geohop_interval"),
-        cs=data.get("credstuff_limit")
-    )
-    return jsonify({"status": "thresholds updated"}), 200
+# ──────────────────────────────────────────────────────────────────────────────
+# 4) Remove old /thresholds routes (NOT USED ANYMORE)
+#    (React was calling /defense-thresholds, so we do not need /thresholds)
+# ──────────────────────────────────────────────────────────────────────────────
 
-@app.route('/blocklist', methods=['GET'])
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 5) /blocklist endpoint (unchanged)
+# ──────────────────────────────────────────────────────────────────────────────
+@app.route("/blocklist", methods=["GET"])
 def get_blocklist():
     unique_entries = set()
     if os.path.exists(BLOCKLIST_PATH):
@@ -167,14 +141,62 @@ def get_blocklist():
                 if t in ("IP", "USER"):
                     unique_entries.add(f"{t}:{val}")
 
-    result = []
-    for e in sorted(unique_entries):
-        t, val = e.split(":", 1)
-        result.append({"type": t, "value": val})
-
+    result = [{"type": e.split(":", 1)[0], "value": e.split(":", 1)[1]} for e in sorted(unique_entries)]
     return jsonify(result), 200
 
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, threaded=True, debug=True)
+# ──────────────────────────────────────────────────────────────────────────────
+# 6) /defense-thresholds GET + POST (correctly named, with ASCII hyphen)
+# ──────────────────────────────────────────────────────────────────────────────
+@app.route("/defense-thresholds", methods=["GET"])
+def get_defense_thresholds():
+    return jsonify(tracker.get_thresholds()), 200
+
+@app.route("/defense-thresholds", methods=["POST"])
+def post_defense_thresholds():
+    data = request.get_json() or {}
+    tracker.update_thresholds(
+        brute_threshold = data.get("brute_threshold"),
+        brute_window    = data.get("brute_window"),
+        geohop_threshold= data.get("geohop_threshold"),
+        cred_threshold  = data.get("cred_threshold"),
+        cred_window     = data.get("cred_window"),
+    )
+    return jsonify({"status": "thresholds updated"}), 200
+
+@app.route("/reset", methods=["POST"])
+def reset():
+    # 1) Clear the on-disk files
+    open(LOGS_PATH, "w").close()
+    open(BLOCKLIST_PATH, "w").close()
+
+    # 2) Clear the in-memory blocklists & suspicious sets
+    tracker.blocked_ips.clear()
+    tracker.blocked_users.clear()
+    tracker.suspicious_ips.clear()
+    tracker.suspicious_users.clear()
+
+    # 3) Clear the tracker’s live-feed records & time buckets
+    tracker.records.clear()
+    tracker.buckets.clear()
+    tracker._start_new_bucket()
+
+    return jsonify({"status": "reset complete"}), 200
+
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_react(path):
+    # If the requested file exists in frontend-dist, serve it
+    if path and os.path.exists(f"frontend-dist/{path}"):
+        return send_from_directory("frontend-dist", path)
+    # Otherwise, serve index.html (so React Router can work)
+    return send_from_directory("frontend-dist", "index.html")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 7) Run Flask
+# ──────────────────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, threaded=True, debug=True)

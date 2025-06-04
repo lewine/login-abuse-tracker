@@ -1,6 +1,8 @@
 // src/App.jsx
+
 import React, { useState, useEffect } from "react";
 import "./index.css";
+
 import Controls from "./components/Controls";
 import StatsCards from "./components/StatsCards";
 import TrafficChart from "./components/TrafficChart";
@@ -9,10 +11,12 @@ import BlockedFeed from "./components/BlockedFeed";
 import SettingsDropdown from "./components/SettingsDropdown";
 
 // Import our API helpers
-import { getStats, simulate } from "./services/api";
+import { getStats, simulate, reset } from "./services/api";
 
 export default function App() {
-  // We’ll store the stats JSON here
+  // --------------------------------------------------------------------------
+  // 0) Stats polling (unchanged)
+  // --------------------------------------------------------------------------
   const [stats, setStats] = useState({
     attempts: [],
     failures: [],
@@ -22,7 +26,6 @@ export default function App() {
     recent: [],
   });
 
-  // Poll getStats() every 1 second
   useEffect(() => {
     let isMounted = true;
 
@@ -37,9 +40,8 @@ export default function App() {
       }
     }
 
-    // Immediately fetch once…
+    // Fetch immediately, then every second
     fetchAndSet();
-    // Then poll every second
     const id = setInterval(fetchAndSet, 1000);
 
     return () => {
@@ -48,12 +50,50 @@ export default function App() {
     };
   }, []);
 
-  // Handler for button clicks in Controls.jsx
-  // We’ll pass this down to <Controls /> so it can call simulate(...)
+  // --------------------------------------------------------------------------
+  // 1) Attack defaults state:
+  //    We store a "defaults" object for each of the four sim types.
+  // --------------------------------------------------------------------------
+  const [attackDefaults, setAttackDefaults] = useState({
+    normal: {
+      delay: 0.5,
+      iterations: 30,
+      failure_rate: 0.2,
+      workers: 3,
+    },
+    bruteforce: {
+      delay: 0.5,
+      iterations: 30,
+      failure_rate: 0.0, // (ignored by bruteforce internally)
+      workers: 5,
+    },
+    geohop: {
+      delay: 1.0,
+      iterations: 10,
+      failure_rate: 0.2, // (ignored by geohop internally)
+      workers: 1,
+    },
+    credstuff: {
+      delay: 1.0,
+      iterations: 10,
+      failure_rate: 0.0,
+      workers: 1,
+    },
+  });
+
+  // --------------------------------------------------------------------------
+  // 2) Revised handleSim: when Controls calls onSimulate(type),
+  //    we look up attackDefaults[type], then call simulate(...)
+  // --------------------------------------------------------------------------
   const handleSim = async (type) => {
     try {
-      await simulate(type);
-      // Optionally, we could immediately refresh stats here:
+      // Pull out the correct defaults for this sim type:
+      const { delay, iterations, failure_rate, workers } = attackDefaults[type];
+
+      // Call simulate(...) with all five parameters
+      await simulate(type, delay, iterations, failure_rate, workers);
+
+      // (Optional) Immediately refresh stats if you like:
       // const fresh = await getStats();
       // setStats(fresh);
     } catch (err) {
@@ -61,23 +101,51 @@ export default function App() {
     }
   };
 
+
+  // 3) NEW: handleReset
+  const handleReset = async () => {
+    try {
+      await reset();            // call POST /reset
+      const fresh = await getStats(); // reload the empty stats
+      setStats(fresh);
+    } catch (err) {
+      console.error("Reset error:", err);
+    }
+  };
+
+  // --------------------------------------------------------------------------
+  // 3) JSX render
+  // --------------------------------------------------------------------------
   return (
-    <div>
-      {/* 1) Header */}
-      <div className="header">
+    <div className="app-container">
+      {/* ------------------ Header ------------------ */}
+      <header className="header">
         <h1>Login Abuse Tracker</h1>
-        <SettingsDropdown />
-      </div>
 
-      {/* 2) Controls row, pass down handleSim so buttons actually call simulate() */}
-      <Controls onSimulate={handleSim} />
+        {/*
+          Pass both attackDefaults and setAttackDefaults into SettingsDropdown
+          so it can display & edit each type's { delay, iterations, failure_rate, workers }.
+        */}
+        <SettingsDropdown
+          attackDefaults={attackDefaults}
+          setAttackDefaults={setAttackDefaults}
+        />
+      </header>
 
-      {/* 3) Stats cards: pass the live numbers */}
+      {/* ------------------ Controls Row ------------------ */}
+      {/*
+        Controls.jsx expects a prop `onSimulate(type)`
+        When a button is clicked, it calls handleSim("normal"), etc.
+      */}
+      <Controls onSimulate={handleSim} onReset={handleReset}/>
+
+      {/* ------------------ Stats Cards ------------------ */}
       <StatsCards stats={stats} />
 
-      {/* 4) Main content with chart + feeds */}
+      {/* ------------------ Main Content ------------------ */}
       <div className="main-content">
         <TrafficChart stats={stats} />
+
         <div className="feed-container">
           <RecentFeed recent={stats.recent} />
           <BlockedFeed />
