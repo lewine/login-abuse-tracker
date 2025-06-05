@@ -1,6 +1,6 @@
 // You can override the API base URL by setting VITE_API_URL in your .env (e.g. "http://localhost:5000").
 // Otherwise it defaults to localhost:5000.
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 //VITE_API_URL=https://your-deployed-backend.com
 
 // Helper: check response, parse JSON, or throw.
