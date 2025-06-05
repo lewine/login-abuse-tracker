@@ -105,15 +105,13 @@ body {
   padding: 0 24px 24px 24px;
 }
 
-/* Chart container (just a placeholder div for now) */
 .chart-container {
   background-color: #222;
   border-radius: 6px;
-  height: 650px;       /* same height your old chart had */
+  height: 650px;      
   position: relative;
 }
 
-/* Chart title inside the chart box */
 .chart-container h3 {
   margin: 0 0 8px 0;
   padding: 16px;
@@ -121,14 +119,10 @@ body {
   border-bottom: 1px solid #333;
 }
 
-/* 3) Let the <canvas> fill exactly the remaining space
-   inside .chart-container, below the <h3>. */
 .chart-canvas {
-  display: block;       /* no inline-block surprises */
+  display: block;  
   width: 100% !important;
   height: calc(100% - 80px) !important;
-  /* 32px accounts for the <h3> height (say ~24px) plus its margin (8px).
-     Adjust this 32px if your actual <h3> / spacing differs. */
 }
 
 
@@ -154,7 +148,6 @@ body {
   border-bottom: 1px solid #333;
   padding-bottom: 4px;
 }
-/* index.css */
 
 /* All log lines use Roboto Mono as per step 1 */
 .feed-box .log-entry {
@@ -166,14 +159,14 @@ body {
 
 /* Suspicious log: orange-ish background */
 .feed-box .suspicious-log {
-  background-color: #f39c12;  /* a warm orange */
-  color: #111;                /* dark text for contrast */
+  background-color: #f39c12;  
+  color: #111;             
 }
 
 /* Blocked log: red background */
 .feed-box .blocked {
-  background-color: #8d0c00;  /* solid red */
-  color: #fff;                /* white text on red */
+  background-color: #8d0c00;  
+  color: #fff;              
 }
 
 /* If you want a slightly darker “hover” effect, optional */
@@ -188,15 +181,15 @@ body {
   margin-right: 4px;
 }
 .feed-box .log-entry .ip {
-  color: #2ecc71;  /* green */
+  color: #2ecc71;  
   margin-right: 4px;
 }
 .feed-box .log-entry .geo {
-  color: #1abc9c;  /* teal */
+  color: #1abc9c;  
   margin-right: 4px;
 }
 .feed-box .log-entry .user {
-  color: #f1c40f;  /* yellow */
+  color: #f1c40f; 
   margin-right: 4px;
 }
 .feed-box .log-entry .type {
@@ -204,10 +197,10 @@ body {
   margin-right: 4px;
 }
 .feed-box .log-entry .res-success {
-  color: #2ecc71;  /* success = green */
+  color: #2ecc71;
 }
 .feed-box .log-entry .res-failure {
-  color: #ff1900;  /* failure = red */
+  color: #ff1900;  
 }
 
 
@@ -217,7 +210,7 @@ body {
   padding: 6px 8px;
   margin-bottom: 4px;
   border-radius: 4px;
-  font-family: "Roboto Mono", monospace; /* if you want the same monospaced look */
+  font-family: "Roboto Mono", monospace;
 }
 
 
@@ -254,7 +247,9 @@ body {
   padding: 4px;
 }
 
-/* ---------- The Dropdown Panel ---------- */
+
+
+
 .dropdown-panel.wide {
   position: absolute;
   top: 32px; 
@@ -263,8 +258,8 @@ body {
   border: 1px solid #555;
   border-radius: 6px;
   padding: 12px;
-  width: 860px;       /* wide enough for 5 columns (~162px each) + padding */
-  max-height: 80vh;   /* scroll if content is too tall */
+  width: 860px;       
+  max-height: 80vh; 
   overflow-y: auto;
   color: #eee;
   z-index: 100;
@@ -277,7 +272,6 @@ body {
   padding-bottom: 4px;
 }
 
-/* ---------- Columns Container ---------- */
 .columns-container {
   display: flex;
   justify-content: space-between;
@@ -288,7 +282,7 @@ body {
 .column {
   display: flex;
   flex-direction: column;
-  width: 162px;   /* ~ equal width for each of the 5 columns */
+  width: 162px;  
   margin-right: 8px;
 }
 
@@ -305,16 +299,15 @@ body {
   color: #ddd;
 }
 
-/* ---------- Shared field styling (input under label) ---------- */
 .sd-field {
   display: flex;
-  flex-direction: column;   /* ensure label on top, input below */
-  margin: 6px 0;            /* consistent vertical spacing */
+  flex-direction: column;   
+  margin: 6px 0;           
   font-size: 0.9rem;
 }
 
 .sd-field label {
-  margin-bottom: 2px;       /* small gap between label text and input */
+  margin-bottom: 2px;      
 }
 
 .sd-field input {
@@ -329,7 +322,6 @@ body {
   text-align: right;
 }
 
-/* ---------- Save / Cancel row ---------- */
 .sd-actions {
   margin-top: 12px;
   display: flex;
@@ -354,7 +346,6 @@ body {
   cursor: not-allowed;
 }
 
-/* ---------- Error message styling ---------- */
 .error {
   margin-top: 6px;
   color: #e74c3c;

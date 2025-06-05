@@ -1,5 +1,3 @@
-# .github/workflows/docker.yml
-
 name: Build (but don’t push)
 
 on:
@@ -42,9 +40,6 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: pytest tests/test_tracker.py
 
-      # ─────────────────────────────────────────────────────────────
-      # Instead of logging in & pushing, just build the image
-      # ─────────────────────────────────────────────────────────────
       - name: Build Docker image only
         run: |
           docker build -t login-abuse-tracker:test .

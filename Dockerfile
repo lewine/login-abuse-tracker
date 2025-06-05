@@ -1,6 +1,4 @@
-# ────────────────────────────────────────────────────────────────────────────
 # Stage 1: Build the React front end
-# ────────────────────────────────────────────────────────────────────────────
 FROM node:18-alpine AS frontend-build
 
 WORKDIR /usr/src/app
@@ -15,9 +13,7 @@ COPY login-abuse-ui/. ./
 RUN npm run build
 
 
-# ────────────────────────────────────────────────────────────────────────────
 # Stage 2: Build the Python/Flask back end (and include React build)
-# ────────────────────────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
 # 1) Install any OS‐level dependencies (e.g. build tools)
